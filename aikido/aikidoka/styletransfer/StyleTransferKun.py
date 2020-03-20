@@ -16,7 +16,7 @@ class StyleTransferKun:
     style_weight: float = 5e2
     normalize_weights: bool = False
     tv_weight:float = 1e-3
-    num_iterations: int = 1000
+    dans: int = 50
     init: str = "random"  # random, image
     init_image = None
     lbfgs_num_correction: int = 100

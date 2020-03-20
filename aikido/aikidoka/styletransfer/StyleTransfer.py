@@ -62,7 +62,8 @@ class StyleTransfer(Aikidoka):
 
                     if layerList['C'][c] in self.kun.content_layers:
                         print("Setting up content layer " + str(i) + ": " + str(layerList['C'][c]))
-                        loss_module = ContentLoss(self.kun.content_weight)
+                        target = net(content_image).detach()
+                        loss_module = ContentLoss(target, self.kun.content_weight)
                         net.add_module(str(len(net)), loss_module)
                         content_losses.append(loss_module)
 
@@ -78,7 +79,8 @@ class StyleTransfer(Aikidoka):
 
                     if layerList['R'][r] in self.kun.content_layers:
                         print("Setting up content layer " + str(i) + ": " + str(layerList['R'][r]))
-                        loss_module = ContentLoss(self.kun.content_weight)
+                        target = net(content_image).detach()
+                        loss_module = ContentLoss(target, self.kun.content_weight)
                         net.add_module(str(len(net)), loss_module)
                         content_losses.append(loss_module)
                         next_content_idx += 1
@@ -96,13 +98,6 @@ class StyleTransfer(Aikidoka):
 
         if self.kun.is_multidevice():
             net = self.setup_multi_device(net, self.kun)
-
-        # Capture content targets
-        for i in content_losses:
-            i.mode = 'capture'
-        print("Capturing content targets")
-        self.print_torch(net)
-        net(content_image)
 
         # Capture style targets
         for i in content_losses:
@@ -142,7 +137,6 @@ class StyleTransfer(Aikidoka):
         num_calls = [0]
 
         def feval():
-            num_calls[0] += 1
             optimizer.zero_grad()
             net(img)
             loss = 0
@@ -162,24 +156,23 @@ class StyleTransfer(Aikidoka):
             listener.maybe_save(num_calls[0], img, content_image)
             listener.maybe_print(num_calls[0], loss, content_losses, style_losses)
 
+            num_calls[0] += 1
             return loss
 
-        optimizer, loopVal = self.setup_optimizer(img, self.kun)
-        while num_calls[0] <= loopVal:
+        optimizer = self.setup_optimizer(img, self.kun)
+        while num_calls[0] <= self.kun.dans:
             optimizer.step(feval)
 
     # Configure the optimizer
     def setup_optimizer(self, img, kun):
         print("Running optimization with L-BFGS")
         optim_state = {
-            'max_iter': kun.num_iterations,
             'tolerance_change': -1,
             'tolerance_grad': -1,
+            'history_size':kun.lbfgs_num_correction
         }
-        if kun.lbfgs_num_correction != 100:
-            optim_state['history_size'] = kun.lbfgs_num_correction
         optimizer = optim.LBFGS([img], **optim_state)
-        return optimizer, 1
+        return optimizer
 
     def init_image(self, content_image):
         if self.kun.init == 'random':
@@ -199,42 +192,6 @@ class StyleTransfer(Aikidoka):
 
         new_net = ModelParallel(net, kun.gpu, kun.multidevice_strategy)
         return new_net
-
-    # Combine the Y channel of the generated image and the UV/CbCr channels of the
-    # content image to perform color-independent style transfer.
-    def original_colors(self, content, generated):
-        content_channels = list(content.convert('YCbCr').split())
-        generated_channels = list(generated.convert('YCbCr').split())
-        content_channels[0] = generated_channels[0]
-        return Image.merge('YCbCr', content_channels).convert('RGB')
-
-    # Print like Lua/Torch7
-    def print_torch(self, net):
-        if self.kun.is_multidevice():
-            return
-        simplelist = ""
-        for i, layer in enumerate(net, 1):
-            simplelist = simplelist + "(" + str(i) + ") -> "
-        print("nn.Sequential ( \n  [input -> " + simplelist + "output]")
-
-        def strip(x):
-            return str(x).replace(", ", ',').replace("(", '').replace(")", '') + ", "
-
-        def n():
-            return "  (" + str(i) + "): " + "nn." + str(l).split("(", 1)[0]
-
-        for i, l in enumerate(net, 1):
-            if "2d" in str(l):
-                ks, st, pd = strip(l.kernel_size), strip(l.stride), strip(l.padding)
-                if "Conv2d" in str(l):
-                    ch = str(l.in_channels) + " -> " + str(l.out_channels)
-                    print(n() + "(" + ch + ", " + (ks).replace(",", 'x', 1) + st + pd.replace(", ", ')'))
-                elif "Pool2d" in str(l):
-                    st = st.replace("  ", ' ') + st.replace(", ", ')')
-                    print(n() + "(" + ((ks).replace(",", 'x' + ks, 1) + st).replace(", ", ','))
-            else:
-                print(n())
-        print(")")
 
 
 # Divide weights by channel size
