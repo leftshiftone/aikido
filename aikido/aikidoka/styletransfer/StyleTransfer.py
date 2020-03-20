@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 from PIL import Image
 
+from aikido.__api__.Aikidoka import Aikidoka
 from aikido.aikidoka.styletransfer.listener.CheckpointListener import CheckpointListener
 from aikido.dojo.listener import SeedListener, BackendListener
 
@@ -19,48 +20,29 @@ from aikido.nn.modules.styletransfer.TVLoss import TVLoss
 from aikido.nn.modules.styletransfer.preprocessing import preprocess
 from aikido.__common__.io.Files import get_files
 
-class StyleTransfer:
+
+class StyleTransfer(Aikidoka):
 
     def __init__(self, kun: StyleTransferKun):
+        super().__init__()
         self.kun = kun
 
-    def invoke(self):
+    def forward(self):
         BackendListener(self.kun.backend, self.kun.cudnn_autotune).training_started(None, None, None)
 
         cnn, layerList = loadCaffemodel(self.kun.model_file, self.kun.pooling, self.kun.gpu, self.kun.disable_check)
 
-        content_image = preprocess(self.kun.content_image, self.kun.image_size).type(self.get_dtype())
+        content_image = preprocess(self.kun.content_image, self.kun.image_size).type(self.kun.get_dtype())
         style_image_list = get_files(self.kun.style_image.split(','))
 
         style_images_caffe = []
         for image in style_image_list:
             style_size = int(self.kun.image_size * self.kun.style_scale)
-            img_caffe = preprocess(image, style_size).type(self.get_dtype())
+            img_caffe = preprocess(image, style_size).type(self.kun.get_dtype())
             style_images_caffe.append(img_caffe)
 
         # Handle style blending weights for multiple style inputs
-        style_blend_weights = []
-        if self.kun.style_blend_weights == None:
-            # Style blending not specified, so use equal weighting
-            for i in style_image_list:
-                style_blend_weights.append(1.0)
-            for i, blend_weights in enumerate(style_blend_weights):
-                style_blend_weights[i] = int(style_blend_weights[i])
-        else:
-            style_blend_weights = self.kun.style_blend_weights.split(',')
-            assert len(style_blend_weights) == len(style_image_list), \
-                "-style_blend_weights and -style_images must have the same number of elements!"
-
-        # Normalize the style blending weights so they sum to 1
-        style_blend_sum = 0
-        for i, blend_weights in enumerate(style_blend_weights):
-            style_blend_weights[i] = float(style_blend_weights[i])
-            style_blend_sum = float(style_blend_sum) + style_blend_weights[i]
-        for i, blend_weights in enumerate(style_blend_weights):
-            style_blend_weights[i] = float(style_blend_weights[i]) / float(style_blend_sum)
-
-        content_layers = self.kun.content_layers.split(',')
-        style_layers = self.kun.style_layers.split(',')
+        style_blend_weights = self.kun.get_style_blend_weights(style_image_list)
 
         # Set up the network, inserting style and content loss modules
         cnn = copy.deepcopy(cnn)
@@ -69,22 +51,22 @@ class StyleTransfer:
         net = nn.Sequential()
         c, r = 0, 0
         if self.kun.tv_weight > 0:
-            tv_mod = TVLoss(self.kun.tv_weight).type(self.get_dtype())
+            tv_mod = TVLoss(self.kun.tv_weight).type(self.kun.get_dtype())
             net.add_module(str(len(net)), tv_mod)
             tv_losses.append(tv_mod)
 
         for i, layer in enumerate(list(cnn), 1):
-            if next_content_idx <= len(content_layers) or next_style_idx <= len(style_layers):
+            if next_content_idx <= len(self.kun.content_layers) or next_style_idx <= len(self.kun.style_layers):
                 if isinstance(layer, nn.Conv2d):
                     net.add_module(str(len(net)), layer)
 
-                    if layerList['C'][c] in content_layers:
+                    if layerList['C'][c] in self.kun.content_layers:
                         print("Setting up content layer " + str(i) + ": " + str(layerList['C'][c]))
                         loss_module = ContentLoss(self.kun.content_weight)
                         net.add_module(str(len(net)), loss_module)
                         content_losses.append(loss_module)
 
-                    if layerList['C'][c] in style_layers:
+                    if layerList['C'][c] in self.kun.style_layers:
                         print("Setting up style layer " + str(i) + ": " + str(layerList['C'][c]))
                         loss_module = StyleLoss(self.kun.style_weight)
                         net.add_module(str(len(net)), loss_module)
@@ -94,14 +76,14 @@ class StyleTransfer:
                 if isinstance(layer, nn.ReLU):
                     net.add_module(str(len(net)), layer)
 
-                    if layerList['R'][r] in content_layers:
+                    if layerList['R'][r] in self.kun.content_layers:
                         print("Setting up content layer " + str(i) + ": " + str(layerList['R'][r]))
                         loss_module = ContentLoss(self.kun.content_weight)
                         net.add_module(str(len(net)), loss_module)
                         content_losses.append(loss_module)
                         next_content_idx += 1
 
-                    if layerList['R'][r] in style_layers:
+                    if layerList['R'][r] in self.kun.style_layers:
                         print("Setting up style layer " + str(i) + ": " + str(layerList['R'][r]))
                         loss_module = StyleLoss(self.kun.style_weight)
                         net.add_module(str(len(net)), loss_module)
@@ -112,7 +94,7 @@ class StyleTransfer:
                 if isinstance(layer, nn.MaxPool2d) or isinstance(layer, nn.AvgPool2d):
                     net.add_module(str(len(net)), layer)
 
-        if self.is_multidevice():
+        if self.kun.is_multidevice():
             net = self.setup_multi_device(net, self.kun)
 
         # Capture content targets
@@ -166,12 +148,12 @@ class StyleTransfer:
             loss = 0
 
             for mod in content_losses:
-                loss += mod.loss.to(self.get_backward_device())
+                loss += mod.loss.to(self.kun.get_backward_device())
             for mod in style_losses:
-                loss += mod.loss.to(self.get_backward_device())
+                loss += mod.loss.to(self.kun.get_backward_device())
             if self.kun.tv_weight > 0:
                 for mod in tv_losses:
-                    loss += mod.loss.to(self.get_backward_device())
+                    loss += mod.loss.to(self.kun.get_backward_device())
 
             loss.backward()
 
@@ -184,7 +166,6 @@ class StyleTransfer:
 
         optimizer, loopVal = self.setup_optimizer(img, self.kun)
         while num_calls[0] <= loopVal:
-            print("### Loop")
             optimizer.step(feval)
 
     # Configure the optimizer
@@ -200,33 +181,14 @@ class StyleTransfer:
         optimizer = optim.LBFGS([img], **optim_state)
         return optimizer, 1
 
-    def get_backward_device(self):
-        if len(self.kun.gpu) > 1:
-            if len(self.kun.gpu) == 0:
-                return "cpu"
-            return "cuda:" + str(self.kun.gpu[0])
-        elif len(self.kun.gpu) > 0:
-            return "cuda:" + str(self.kun.gpu[0])
-        return "cpu"
-
-    def get_dtype(self):
-        if len(self.kun.gpu) > 1:
-            return torch.FloatTensor
-        if len(self.kun.gpu) > 0:
-            return torch.cuda.FloatTensor
-        return torch.FloatTensor
-
-    def is_multidevice(self):
-        return len(self.kun.gpu) > 1
-
     def init_image(self, content_image):
         if self.kun.init == 'random':
             B, C, H, W = content_image.size()
-            return torch.randn(C, H, W).mul(0.001).unsqueeze(0).type(self.get_dtype())
+            return torch.randn(C, H, W).mul(0.001).unsqueeze(0).type(self.kun.get_dtype())
         elif self.kun.init == 'image':
             if self.kun.init_image != None:
                 image_size = (content_image.size(2), content_image.size(3))
-                init_image = preprocess(self.kun.init_image, image_size).type(self.get_dtype())
+                init_image = preprocess(self.kun.init_image, image_size).type(self.kun.get_dtype())
                 return init_image.clone()
             else:
                 return content_image.clone()
@@ -248,7 +210,7 @@ class StyleTransfer:
 
     # Print like Lua/Torch7
     def print_torch(self, net):
-        if self.is_multidevice():
+        if self.kun.is_multidevice():
             return
         simplelist = ""
         for i, layer in enumerate(net, 1):
