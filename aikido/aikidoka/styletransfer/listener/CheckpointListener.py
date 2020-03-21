@@ -5,37 +5,38 @@ from PIL import Image
 from torch.nn import Parameter
 
 from aikido.aikidoka.styletransfer import StyleTransferKun
-from aikido.nn.modules.styletransfer.preprocessing import deprocess
+# from aikido.nn.modules.styletransfer.preprocessing import deprocess
+from aikido.nn.modules.styletransfer.fileloader import deprocess
 
 
 @dataclass
 class CheckpointListener:
     kun: StyleTransferKun
 
-    def maybe_print(self, t, loss, content_losses, style_losses):
+    def maybe_print(self, t, loss, content_losses, style_losses, tv_losses):
         if self.kun.print_iter > 0 and t % self.kun.print_iter == 0:
             print("Iteration " + str(t) + " / " + str(self.kun.dans))
             for i, loss_module in enumerate(content_losses):
-                print("  Content " + str(i + 1) + " loss: " + str(loss_module.loss.item()))
+                print("  Content " + str(i + 1) + " loss: " + str(loss_module.loss.item() * self.kun.content_weight))
             for i, loss_module in enumerate(style_losses):
-                print("  Style " + str(i + 1) + " loss: " + str(loss_module.loss.item()))
+                print("  Style " + str(i + 1) + " loss: " + str(loss_module.loss.item() * self.kun.styling_weight))
+            for i, loss_module in enumerate(tv_losses):
+                print("  TV " + str(i + 1) + " loss: " + str(loss_module.loss.item()))
             print("  Total loss: " + str(loss.item()))
 
     def maybe_save(self, t, img:Parameter, content_image):
-        should_save = self.kun.save_iter > 0 and t % self.kun.save_iter == 0
+        should_save = self.kun.save_iter > 0 and t % self.kun.save_iter == 0 and t > 0
         should_save = should_save or t == self.kun.dans
         if should_save:
             output_filename, file_extension = os.path.splitext(self.kun.output_image)
-            if t == self.kun.dans:
-                filename = output_filename + str(file_extension)
-            else:
-                filename = str(output_filename) + "_" + str(t) + str(file_extension)
+            filename = str(output_filename) + "_" + str(t) + str(file_extension)
 
-            disp = deprocess(img.squeeze(0).clone())
+            #disp = deprocess(img.squeeze(0).clone())
+            disp = deprocess(img.clone(), self.kun)
 
             # Maybe perform postprocessing for color-independent style transfer
             if self.kun.original_colors == 1:
-                disp = self.original_colors(deprocess(content_image.clone()), disp)
+                disp = self.original_colors(deprocess(content_image.clone(), self.kun), disp)
 
             disp.save(str(filename))
 
