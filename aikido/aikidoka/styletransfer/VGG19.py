@@ -20,13 +20,7 @@ def loadVGG19(kun: StyleTransferKun):
     if kun.caffee_model:
         cnn.load_state_dict(torch.load("D:/IntellijProjects/aikido/aikido/aikidoka/styletransfer/models/vgg19-d01eb7cb.pth"), strict=(not False))
 
-    cnn = cnn.features
-    cnn = copy.deepcopy(cnn)
-    #for param in cnn.parameters():
-    #    param.requires_grad = False
-
-    cnn = cnn.cuda()
-
+    cnn = copy.deepcopy(cnn.features).cuda()
     return cnn, vgg19_dict
 
 

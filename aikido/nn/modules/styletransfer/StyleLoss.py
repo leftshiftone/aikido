@@ -8,6 +8,8 @@ def gram_matrix(input):
     a, b, c, d = input.size()
     features = input.view(a * b, c * d)  # resise F_XL into \hat F_XL
     G = torch.mm(features, features.t())
+    # 3.3 Activation Shift
+    #G = torch.mm(features - 1, (features - 1).t())
 
     return G.div(a * b * c * d)
 

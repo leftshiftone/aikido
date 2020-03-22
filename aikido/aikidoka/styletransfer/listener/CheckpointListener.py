@@ -21,7 +21,7 @@ class CheckpointListener:
             for i, loss_module in enumerate(style_losses):
                 print("  Style " + str(i + 1) + " loss: " + str(loss_module.loss.item() * self.kun.styling_weight))
             for i, loss_module in enumerate(tv_losses):
-                print("  TV " + str(i + 1) + " loss: " + str(loss_module.loss.item()))
+                print("  TV " + str(i + 1) + " loss: " + str(loss_module.loss.item() * self.kun.tv_weight))
             print("  Total loss: " + str(loss.item()))
 
     def maybe_save(self, t, img:Parameter, content_image):

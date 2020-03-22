@@ -31,8 +31,6 @@ class StyleTransfer(Aikidoka):
         content_image = preprocess(kun.content_image, kun.image_size, kun).type(kun.get_dtype())
         styling_image = preprocess(kun.styling_image, kun.image_size, kun).type(kun.get_dtype())
 
-        # assert styling_image.size() == content_image.size(), "content/styling image size mismatch"
-
         # Set up the network, inserting style and content loss modules
         content_losses, styling_losses, tv_losses = [], [], []
         net = nn.Sequential(Normalization().to(get_device()))
@@ -94,6 +92,7 @@ class StyleTransfer(Aikidoka):
 
         self.kun = kun
         self.net = net
+        self.device = kun.get_backward_device()
         self.content_image = content_image
         self.styling_image = styling_image
         self.content_losses, self.styling_losses, self.tv_losses = content_losses, styling_losses, tv_losses
@@ -120,16 +119,14 @@ class StyleTransfer(Aikidoka):
 
                 content_score, styling_score, tv_score = 0, 0, 0
 
-                for sl in self.styling_losses:
-                    styling_score += sl.loss.to(self.kun.get_backward_device())
-                for cl in self.content_losses:
-                    content_score += cl.loss.to(self.kun.get_backward_device())
+                for i, sl in enumerate(self.styling_losses):
+                    weight = self.kun.styling_weight / (2**i if self.kun.geometric_weight else 1)
+                    styling_score += sl.loss.to(self.kun.get_backward_device()) * weight
+                for i, cl in enumerate(self.content_losses):
+                    weight = self.kun.content_weight / (2**(len(self.content_losses) - i) if self.kun.geometric_weight else 1)
+                    content_score += cl.loss.to(self.kun.get_backward_device()) * weight
                 for tl in self.tv_losses:
-                    tv_score += tl.loss.to(self.kun.get_backward_device())
-
-                styling_score *= self.kun.styling_weight
-                content_score *= self.kun.content_weight
-                tv_score *= self.kun.tv_weight
+                    tv_score += tl.loss.to(self.kun.get_backward_device()) * self.kun.tv_weight
 
                 loss = styling_score + content_score + tv_score
                 loss.backward()
@@ -158,7 +155,7 @@ class StyleTransfer(Aikidoka):
     def init_image(self):
         if self.kun.init == 'random':
             B, C, H, W = self.content_image.size()
-            factor = 0.001 if self.kun.caffee_model else 1
+            factor = 0.001 if self.kun.caffee_model else 0.001
 
             return torch.randn(C, H, W).mul(factor).unsqueeze(0).type(self.kun.get_dtype())
         elif self.kun.init == 'image':

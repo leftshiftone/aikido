@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+import numpy as np
 import torch
 
 from aikido.__api__ import Aikidoka, Kata
@@ -16,3 +17,4 @@ class SeedListener(DojoListener):
             torch.manual_seed(self.seed)
             torch.cuda.manual_seed_all(self.seed)
             torch.backends.cudnn.deterministic = True
+            np.random.seed(self.seed)
