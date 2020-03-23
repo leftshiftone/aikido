@@ -1,41 +1,30 @@
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import List
 
 import torch
 
 
+class Pooling(Enum):
+    MAX = "max"
+    AVG = "avg"
+
 @dataclass
 class StyleTransferKun:
     styling_image: str
     content_image: str
-    style_blend_weights = None
     image_size: int = 512
     # Zero-indexed ID of the GPU to use; empty list for CPU mode
     gpu: List[int] = field(default_factory=lambda: [0])
     content_weight: float = 5e0
     styling_weight: float = 1e2
-    normalize_weights: bool = False
-    tv_weight:float = 1e-3
-    dans: int = 50
-    init: str = "random"  # random, image
-    init_image = None
-    lbfgs_num_correction: int = 100
-    print_iter: int = 50
-    save_iter: int = 100
-    output_image: str = "out.png"
+    tv_weight: float = 1e-3
     style_scale: float = 1.0
-    original_colors: int = 0  # 0, 1
     caffee_model: bool = False
-    geometric_weight:bool = False
-    pooling: str = "max"  # avg, max
-    backend: str = "nn"  # 'nn', 'cudnn', 'mkl', 'mkldnn', 'openmp', 'mkl,cudnn', 'cudnn,mkl'
-    cudnn_autotune: bool = False
-    seed: int = -1
-    content_layers: List[str] = field(default_factory=lambda: ['conv4_1'])
-    #content_layers: List[str] = field(default_factory=lambda: ['conv1_1', 'conv1_2', 'conv2_1', 'conv2_2', 'conv3_1', 'conv3_2', 'conv3_3', 'conv4_1', 'conv4_2', 'conv4_3', 'conv5_1', 'conv5_2', 'conv5_3'])
-    styling_layers: List[str] = field(default_factory=lambda: ['conv1_1','conv2_1', 'conv3_1', 'conv4_1', 'conv5_1'])
-    #styling_layers: List[str] = field(default_factory=lambda: ['conv1_1', 'conv1_2', 'conv2_1', 'conv2_2', 'conv3_1', 'conv3_2', 'conv3_3', 'conv4_1', 'conv4_2', 'conv4_3', 'conv5_1', 'conv5_2', 'conv5_3'])
-    multidevice_strategy: str = '4,7,29'
+    file_name:str = "output.png"
+    pooling: Pooling = Pooling.MAX
+    content_layers: List[str] = field(default_factory=lambda: ['relu4_1'])
+    styling_layers: List[str] = field(default_factory=lambda: ['relu1_1', 'relu2_1', 'relu3_1', 'relu4_1', 'relu5_1'])
 
     def get_backward_device(self):
         if len(self.gpu) > 1:

@@ -1,23 +1,17 @@
-import torch
+import logging
+
 import torch.nn as nn
-import torch.optim as optim
 from PIL import Image
 
 from aikido.__api__.Aikidoka import Aikidoka
-from aikido.aikidoka.styletransfer.listener.CheckpointListener import CheckpointListener
-from aikido.dojo.listener import SeedListener, BackendListener
-
-Image.MAX_IMAGE_PIXELS = 1000000000  # Support gigapixel images
-
-from aikido.aikidoka.styletransfer.VGG19 import loadVGG19
-
 from aikido.aikidoka.styletransfer.StyleTransferKun import StyleTransferKun
+from aikido.aikidoka.styletransfer.VGG19 import loadVGG19
 from aikido.nn.modules.styletransfer.ContentLoss import ContentLoss
 from aikido.nn.modules.styletransfer.StyleLoss import StyleLoss
 from aikido.nn.modules.styletransfer.TVLoss import TVLoss
-# from aikido.nn.modules.styletransfer.preprocessing import preprocess
 from aikido.nn.modules.styletransfer.fileloader import preprocess
-from aikido.nn.modules.styletransfer.Normalization import Normalization
+
+Image.MAX_IMAGE_PIXELS = 1000000000  # Support gigapixel images
 
 
 # https://arxiv.org/pdf/1605.04603.pdf
@@ -29,11 +23,10 @@ class StyleTransfer(Aikidoka):
         cnn, layerList = loadVGG19(kun)
 
         content_image = preprocess(kun.content_image, kun.image_size, kun).type(kun.get_dtype())
-        styling_image = preprocess(kun.styling_image, kun.image_size, kun).type(kun.get_dtype())
+        styling_image = preprocess(kun.styling_image, kun.image_size * kun.style_scale, kun).type(kun.get_dtype())
 
-        # Set up the network, inserting style and content loss modules
         content_losses, styling_losses, tv_losses = [], [], []
-        net = nn.Sequential(Normalization().to(get_device()))
+        net = nn.Sequential()
 
         if kun.tv_weight > 0:
             tv_mod = TVLoss().type(kun.get_dtype())
@@ -85,7 +78,7 @@ class StyleTransfer(Aikidoka):
                 net = net[:(i + 1)]
                 break
 
-        print(net)
+        logging.info(net)
 
         for param in net.parameters():
             param.requires_grad = False
@@ -97,75 +90,5 @@ class StyleTransfer(Aikidoka):
         self.styling_image = styling_image
         self.content_losses, self.styling_losses, self.tv_losses = content_losses, styling_losses, tv_losses
 
-    def forward(self):
-        BackendListener(self.kun.backend, self.kun.cudnn_autotune).training_started(None, None, None)
-        SeedListener(self.kun.seed).training_started(None, None, None)
-
-        generated_image = self.init_image()
-        generated_image = nn.Parameter(generated_image)
-        optimizer = self.setup_optimizer(generated_image, self.kun)
-
-        # Function to evaluate loss and gradient. We run the net forward and
-        # backward to get the gradient, and sum up losses from the loss modules.
-        # optim.lbfgs internally handles iteration and calls this function many
-        # times, so we manually count the number of iterations to handle printing
-        # and saving intermediate results.
-        dan = [0]
-
-        while dan[0] <= self.kun.dans:
-            def closure():
-                optimizer.zero_grad()
-                self.net(generated_image)
-
-                content_score, styling_score, tv_score = 0, 0, 0
-
-                for i, sl in enumerate(self.styling_losses):
-                    weight = self.kun.styling_weight / (2**i if self.kun.geometric_weight else 1)
-                    styling_score += sl.loss.to(self.kun.get_backward_device()) * weight
-                for i, cl in enumerate(self.content_losses):
-                    weight = self.kun.content_weight / (2**(len(self.content_losses) - i) if self.kun.geometric_weight else 1)
-                    content_score += cl.loss.to(self.kun.get_backward_device()) * weight
-                for tl in self.tv_losses:
-                    tv_score += tl.loss.to(self.kun.get_backward_device()) * self.kun.tv_weight
-
-                loss = styling_score + content_score + tv_score
-                loss.backward()
-
-                listener = CheckpointListener(self.kun)
-
-                listener.maybe_save(dan[0], generated_image, self.content_image)
-                listener.maybe_print(dan[0], loss, self.content_losses, self.styling_losses, self.tv_losses)
-
-                dan[0] += 1
-                return styling_score + content_score + tv_score
-
-            optimizer.step(closure)
-
-        # generated_image.data.clamp_(0, 1)
-        return generated_image
-
-    # Configure the optimizer
-    def setup_optimizer(self, img, kun):
-        print("Running optimization with L-BFGS")
-        optim_state = {
-            'history_size': kun.lbfgs_num_correction
-        }
-        return optim.LBFGS([img.requires_grad_()], **optim_state)
-
-    def init_image(self):
-        if self.kun.init == 'random':
-            B, C, H, W = self.content_image.size()
-            factor = 0.001 if self.kun.caffee_model else 0.001
-
-            return torch.randn(C, H, W).mul(factor).unsqueeze(0).type(self.kun.get_dtype())
-        elif self.kun.init == 'image':
-            if self.kun.init_image != None:
-                image_size = (self.content_image.size(2), self.content_image.size(3))
-                init_image = preprocess(self.kun.init_image, image_size).type(self.kun.get_dtype())
-                return init_image.clone()
-            else:
-                return self.content_image.clone()
-
-
-def get_device():
-    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    def forward(self, x):
+        return self.net(x)

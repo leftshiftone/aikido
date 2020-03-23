@@ -1,6 +1,8 @@
+import logging
+from abc import ABC
+
 import numpy as np
 import torch
-from abc import ABC
 from torch import cuda
 
 from aikido.__api__ import Aikidoka, DojoKun, Kata, DojoListener, Evaluation
@@ -24,12 +26,13 @@ class BaseDojo(ABC):
         register a proper listener instance.
         """
         aikidoka.train()
+        self._before_training_started(aikidoka)
 
         for listener in self.listeners:
             listener.training_started(aikidoka, kata, self.dojokun)
 
         for i in range(self.dojokun.dans):
-            print("Dan: {}".format(i))
+            logging.info("Dan: {}".format(i))
 
             for listener in self.listeners:
                 listener.dan_started(aikidoka, (i, self.dojokun.dans))
@@ -104,4 +107,7 @@ class BaseDojo(ABC):
         pass
 
     def _before_back_propagation(self, aikidoka:Aikidoka):
+        pass
+
+    def _before_training_started(self, aikidoka:Aikidoka):
         pass
