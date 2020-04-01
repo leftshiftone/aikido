@@ -5,7 +5,6 @@ from PIL import Image
 from torch.nn import Parameter
 
 from aikido.__api__ import DojoListener, Aikidoka
-# from aikido.nn.modules.styletransfer.preprocessing import deprocess
 from aikido.nn.modules.styletransfer.fileloader import deprocess
 
 
@@ -24,9 +23,9 @@ class CheckpointListener(DojoListener):
         if self.print_iter > 0 and t % self.print_iter == 0:
             print("Iteration " + str(t) + " / " + str(50))# FIXME
             for i, loss_module in enumerate(content_losses):
-                print("  Content " + str(i + 1) + " loss: " + str(loss_module.loss.item() * self.kun.content_weight))
+                print("  Content " + str(i + 1) + " loss: " + str(loss_module.loss.item() * self.kun.content_weights[i]))
             for i, loss_module in enumerate(styling_losses):
-                print("  Style " + str(i + 1) + " loss: " + str(loss_module.loss.item() * self.kun.styling_weight))
+                print("  Style " + str(i + 1) + " loss: " + str(loss_module.loss.item() * self.kun.styling_weights[i]))
             for i, loss_module in enumerate(tv_losses):
                 print("  TV " + str(i + 1) + " loss: " + str(loss_module.loss.item() * self.kun.tv_weight))
             print("  Total loss: " + str(loss.item()))

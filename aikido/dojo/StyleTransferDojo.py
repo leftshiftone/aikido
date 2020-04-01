@@ -29,6 +29,7 @@ class StyleTransferDojo(BaseDojo):
         self.add_listener(CheckpointListener(original_colors=dojokun.original_colors))
 
     def _before_training_started(self, aikidoka: Aikidoka):
+        # TODO: remove workaround
         self.content_image = aikidoka.content_image
         self.kun = aikidoka.kun
         self.generated_image = self._init_image()
@@ -51,11 +52,10 @@ class StyleTransferDojo(BaseDojo):
 
             loss = 0
             for i, sl in enumerate(aikidoka.styling_losses):
-                weight = self.kun.styling_weight / (2 ** i if self.dojokun.geometric_weight else 1)
+                weight = self.kun.styling_weights[i] / (2 ** i if self.dojokun.geometric_weight else 1)
                 loss += sl.loss.to(self.kun.get_backward_device()) * weight
             for i, cl in enumerate(aikidoka.content_losses):
-                weight = self.kun.content_weight / (
-                    2 ** (len(aikidoka.content_losses) - i) if self.dojokun.geometric_weight else 1)
+                weight = self.kun.content_weights[i] / (2 ** (len(aikidoka.content_losses) - i) if self.dojokun.geometric_weight else 1)
                 loss += cl.loss.to(self.kun.get_backward_device()) * weight
             for tl in aikidoka.tv_losses:
                 loss += tl.loss.to(self.kun.get_backward_device()) * self.kun.tv_weight

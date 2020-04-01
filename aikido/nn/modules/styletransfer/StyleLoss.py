@@ -6,11 +6,11 @@ import torch.nn.functional as F
 
 def gram_matrix(input):
     a, b, c, d = input.size()
-    features = input.view(a * b, c * d)  # resise F_XL into \hat F_XL
+    features = input.view(a * b, c * d)
     G = torch.mm(features, features.t())
-    # 3.3 Activation Shift
-    #G = torch.mm(features - 1, (features - 1).t())
 
+    # 'normalization' of the of the gram matrix values
+    # by dividing by the number of element in each feature maps.
     return G.div(a * b * c * d)
 
 class StyleLoss(nn.Module):

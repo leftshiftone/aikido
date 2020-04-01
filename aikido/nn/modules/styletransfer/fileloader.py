@@ -2,10 +2,10 @@ import torch
 import torchvision.transforms as transforms
 from PIL import Image
 
-from aikido.aikidoka.styletransfer import StyleTransferKun
+#from aikido.aikidoka.styletransfer import StyleTransferKun
 
 
-def preprocess(image_name, image_size, kun: StyleTransferKun):
+def preprocess(image_name, image_size, kun):
     image = Image.open(image_name).convert('RGB')
     if type(image_size) is not tuple:
         image_size = tuple([int((float(image_size) / max(image.size))*x) for x in (image.height, image.width)])
@@ -23,7 +23,7 @@ def preprocess(image_name, image_size, kun: StyleTransferKun):
 
 
 #  Undo the above preprocessing.
-def deprocess(output_tensor, kun: StyleTransferKun):
+def deprocess(output_tensor, kun):
     if kun.caffee_model:
         bgr2rgb = transforms.Compose([transforms.Lambda(lambda x: x[torch.LongTensor([2,1,0])])])
         Normalize = transforms.Compose([transforms.Normalize(mean=[-103.939, -116.779, -123.68], std=[1,1,1])])

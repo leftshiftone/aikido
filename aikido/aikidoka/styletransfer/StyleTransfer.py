@@ -50,6 +50,7 @@ class StyleTransfer(Aikidoka):
                 relu += 1
                 layer = nn.ReLU(inplace=False)
             elif isinstance(layer, nn.MaxPool2d):
+                #layer = nn.AvgPool2d(layer.kernel_size, layer.stride)
                 name = layerList["P"][pool]
                 pool += 1
             elif isinstance(layer, nn.BatchNorm2d):

@@ -18,7 +18,7 @@ vgg19_dict = {
 def loadVGG19(kun: StyleTransferKun):
     cnn = models.vgg19(pretrained=True).to(get_device()).eval()
     if kun.caffee_model:
-        cnn.load_state_dict(torch.load("D:/IntellijProjects/aikido/aikido/aikidoka/styletransfer/models/vgg19-d01eb7cb.pth"), strict=(not False))
+        cnn.load_state_dict(torch.load(kun.model), strict=(not False))
 
     cnn = copy.deepcopy(cnn.features).cuda()
     return cnn, vgg19_dict
