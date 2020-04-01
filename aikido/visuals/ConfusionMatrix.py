@@ -28,11 +28,11 @@ class ConfusionMatrix(AbstractVisual):
             raise ValueError("evaluation 'isprop' must be False")
 
         conf_mat = confusion_matrix(evaluation.labels, evaluation.values)
-        fig, ax = plt.subplots(figsize=self.figsize)
+        plt.subplots(figsize=self.figsize)
         sns.heatmap(conf_mat, annot=True, fmt='d',
                     cmap=ListedColormap(['#282828', '#192346', '#055087', '#055569', '#058296', '#0A96A0', '#0FBEC8', '#05E1B9', '#0FF5C8']),
-                    xticklabels=["1", "2", "3", "4", "5", "6", "7", "8", "9"],
-                    yticklabels=["1", "2", "3", "4", "5", "6", "7", "8", "9"])
+                    xticklabels=evaluation.labels,
+                    yticklabels=evaluation.labels)
         plt.ylabel('Actual')
         plt.xlabel('Predicted')
         plt.show()

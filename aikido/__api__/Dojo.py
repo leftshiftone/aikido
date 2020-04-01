@@ -42,10 +42,12 @@ class Evaluation:
 
 
 class DojoKun:
-    def __init__(self, optimizer, loss, dans=20):
+    def __init__(self, optimizer, loss, dans=20, batch_size: int = 64, max_seq_len: int = 150):
         self.optimizer = optimizer
         self.loss = loss
         self.dans = dans
+        self.batch_size = batch_size
+        self.max_seq_len = max_seq_len
 
 
 class Dojo(ABC):

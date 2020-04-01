@@ -16,11 +16,10 @@ class Batch:
 
 class BatchIterator:
 
-    def __init__(self, df, batch_size, max_seq_len):
+    def __init__(self, df, batch_size):
         self.df = df
         self.len = len(df)
         self.batch_size = batch_size
-        self.max_seq_len = max_seq_len
 
     def __len__(self):
         return int((self.len / self.batch_size) + (1 if self.len % self.batch_size is not 0 else 1))
@@ -40,19 +39,9 @@ class BatchIterator:
             raise StopIteration
 
     def to_tensor(self, df):
-        def txtLen(text):
-            return min(len(text), self.max_seq_len)
-        def slice(list):
-            return self.pad(list[0: self.max_seq_len])
-
-        value = torch.LongTensor(list(map(slice, df.value.values.tolist()))).t()
+        value = torch.LongTensor(df.value.values.tolist()).t()
         label = torch.LongTensor(df.label.values.tolist())
         rowid = torch.LongTensor(df.rowid.values.tolist())
-        lengths = torch.LongTensor(df.value.map(txtLen).values.tolist())
+        lengths = torch.LongTensor(df.value.map(len).values.tolist())
 
         return Batch(rowid, value, label, lengths)
-
-    def pad(self, list):
-        while (len(list) < self.max_seq_len):
-            list.append(100000) # pad
-        return list

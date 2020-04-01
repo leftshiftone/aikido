@@ -4,8 +4,9 @@ from .BaseDojo import BaseDojo
 
 
 class RnnDojoKun(DojoKun):
-    def __init__(self, optimizer, loss, dans=20, gradient_clipping=None):
-        super().__init__(optimizer, loss, dans)
+    def __init__(self, optimizer, loss, dans=20, gradient_clipping=None, batch_size: int = 64,
+                 max_seq_len: int = 100):
+        super().__init__(optimizer, loss, dans, batch_size, max_seq_len)
         self.gradient_clipping = gradient_clipping
 
 

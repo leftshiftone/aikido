@@ -1,4 +1,5 @@
 import logging
+
 import torch
 from torch import nn, tensor
 
@@ -38,3 +39,6 @@ class BPEmbEmbedding(AbstractEmbedding):
 
     def raw_embedding(self) -> nn.Embedding:
         return self.embeddings_
+
+    def padding(self):
+        return 100000

@@ -1,4 +1,5 @@
 from abc import abstractmethod
+
 from torch import nn
 
 
@@ -25,6 +26,10 @@ class AbstractEmbedding(nn.Module):
 
     @abstractmethod
     def embed(self, x):
+        pass
+
+    @abstractmethod
+    def padding(self):
         pass
 
     def forward(self, x):
