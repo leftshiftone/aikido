@@ -30,11 +30,12 @@ class DojoListener:
 
 class Evaluation:
 
-    def __init__(self, labels, values, rowids, isprop: True):
+    def __init__(self, labels, values, rowids, isprop: True, groups):
         self.labels = labels
         self.values = values
         self.rowids = rowids
         self.isprop = isprop
+        self.groups = groups
 
     def __iter__(self):
         for i in [self.labels, self.values, self.rowids, self.isprop]:

@@ -31,8 +31,8 @@ class ConfusionMatrix(AbstractVisual):
         plt.subplots(figsize=self.figsize)
         sns.heatmap(conf_mat, annot=True, fmt='d',
                     cmap=ListedColormap(['#282828', '#192346', '#055087', '#055569', '#058296', '#0A96A0', '#0FBEC8', '#05E1B9', '#0FF5C8']),
-                    xticklabels=evaluation.labels,
-                    yticklabels=evaluation.labels)
+                    xticklabels=evaluation.groups,
+                    yticklabels=evaluation.groups)
         plt.ylabel('Actual')
         plt.xlabel('Predicted')
         plt.show()

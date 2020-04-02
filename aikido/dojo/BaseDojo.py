@@ -116,7 +116,9 @@ class BaseDojo(ABC):
         all_preds = []
         all_y = []
         all_i = []
-        for _, batch in enumerate(kata):
+
+        iterator = self._to_iterator(aikidoka, kata)
+        for _, batch in enumerate(iterator):
             if torch.cuda.is_available():
                 x = batch.text.cuda()
             else:
@@ -127,8 +129,7 @@ class BaseDojo(ABC):
             all_y.extend(batch.label.numpy())
             all_i.extend(batch.rowid.numpy())
 
-        #return all_y, np.array(all_preds), all_i
-        return Evaluation(all_y, np.array(all_preds), all_i, probability)
+        return Evaluation(all_y, np.array(all_preds), all_i, probability, kata.label_names)
 
     def _after_back_propagation(self, aikidoka:Aikidoka):
         pass
