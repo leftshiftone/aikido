@@ -1,9 +1,11 @@
 import logging
 
+import torch
 import torch.nn as nn
 from PIL import Image
 
 from aikido.__api__.Aikidoka import Aikidoka
+from aikido.aikidoka.styletransfer.ModelParallel import ModelParallel
 from aikido.aikidoka.styletransfer.StyleTransferKun import StyleTransferKun
 from aikido.aikidoka.styletransfer.VGG19 import loadVGG19
 from aikido.nn.modules.styletransfer.ContentLoss import ContentLoss
@@ -62,16 +64,20 @@ class StyleTransfer(Aikidoka):
             net.add_module(name, layer)
 
             if add_content_loss:
-                target = net(content_image).detach()
-                content_loss = ContentLoss(target)
-                content_losses.append(content_loss)
-                net.add_module("content_loss_{}".format(len(content_losses)), content_loss)
+                with torch.no_grad():
+                    target = ModelParallel(net, kun)(content_image).detach()
+                    content_loss = ContentLoss(target)
+                    content_losses.append(content_loss)
+                    net.add_module("content_loss_{}".format(len(content_losses)), content_loss)
+                torch.cuda.empty_cache()
 
             if add_styling_loss:
-                target_feature = net(styling_image).detach()
-                styling_loss = StyleLoss(target_feature)
-                styling_losses.append(styling_loss)
-                net.add_module("style_loss_{}".format(len(styling_losses)), styling_loss)
+                with torch.no_grad():
+                    target_feature = ModelParallel(net, kun)(styling_image).detach()
+                    styling_loss = StyleLoss(target_feature)
+                    styling_losses.append(styling_loss)
+                    net.add_module("style_loss_{}".format(len(styling_losses)), styling_loss)
+                torch.cuda.empty_cache()
 
         # now we trim off the layers after the last content and style losses
         for i in range(len(net) - 1, -1, -1):
@@ -84,9 +90,11 @@ class StyleTransfer(Aikidoka):
         for param in net.parameters():
             param.requires_grad = False
 
+        if len(kun.gpu_sections) > 0:
+            net = ModelParallel(net, kun)
+
         self.kun = kun
         self.net = net
-        self.device = kun.get_backward_device()
         self.content_image = content_image
         self.styling_image = styling_image
         self.content_losses, self.styling_losses, self.tv_losses = content_losses, styling_losses, tv_losses

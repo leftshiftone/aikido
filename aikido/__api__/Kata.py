@@ -4,8 +4,6 @@ from typing import List
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
-# FIXME: scikitlearn dependency
-from sklearn.utils import resample
 
 
 class Preprocessor:
@@ -37,6 +35,9 @@ class Kata(ABC):
         return len(self.labels)
 
     def upsample(self, seed: int = 123):
+        # FIXME: scikitlearn dependency
+        from sklearn.utils import resample
+
         max_size = 0
 
         for i in range(1, len(self.labels) + 1):

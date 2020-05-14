@@ -14,6 +14,9 @@ class SeedListener(DojoListener):
 
     def training_started(self, aikidoka: Aikidoka, kata: Kata, kun: DojoKun):
         if self.seed >= 0:
+            from random import seed
+            seed(0)
+
             torch.manual_seed(self.seed)
             torch.cuda.manual_seed_all(self.seed)
             torch.backends.cudnn.deterministic = True

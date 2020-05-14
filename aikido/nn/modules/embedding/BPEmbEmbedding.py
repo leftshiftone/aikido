@@ -1,8 +1,10 @@
 import logging
+from pathlib import Path
 
 import torch
 from torch import nn, tensor
 
+import aikido
 from .AbstractEmbedding import AbstractEmbedding
 
 
@@ -12,7 +14,7 @@ class BPEmbEmbedding(AbstractEmbedding):
         super().__init__()
         try:
             from bpemb import BPEmb
-            self.embedder = BPEmb(lang=lang, dim=dim, vs=vs, add_pad_emb=add_pad_emb)
+            self.embedder = BPEmb(lang=lang, dim=dim, vs=vs, add_pad_emb=add_pad_emb, cache_dir=Path(aikido.cache_root) / "embeddings")
             self.embeddings_ = nn.Embedding.from_pretrained(tensor(self.embedder.vectors, dtype=torch.float),
                                                             padding_idx=vs)
             self.dim_ = dim
@@ -39,6 +41,3 @@ class BPEmbEmbedding(AbstractEmbedding):
 
     def raw_embedding(self) -> nn.Embedding:
         return self.embeddings_
-
-    def padding(self):
-        return 100000

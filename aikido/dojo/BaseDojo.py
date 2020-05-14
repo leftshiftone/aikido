@@ -65,7 +65,13 @@ class BaseDojo(ABC):
                 x = batch.text
                 y = (batch.label - 1).type(torch.LongTensor)
 
+            for listener in self.listeners:
+                listener.inference_started(aikidoka, x, batch.lengths)
+
             y_pred = aikidoka.__call__(x, batch.lengths)
+
+            for listener in self.listeners:
+                listener.inference_finished(aikidoka, x, batch.lengths, y)
 
             loss = self.dojokun.loss(y_pred, y)
             self._before_back_propagation(aikidoka)
@@ -94,16 +100,16 @@ class BaseDojo(ABC):
 
         for index, row in data.df.iterrows():
             for j in range(max(1, int(len(row["value"]) / self.dojokun.max_seq_len))):
-                value_col.append(self.pad(row["value"][j * self.dojokun.max_seq_len:(j + 1) * self.dojokun.max_seq_len]))
+                value_col.append(self.pad(row["value"][j * self.dojokun.max_seq_len:(j + 1) * self.dojokun.max_seq_len], 10000))
                 label_col.append(row["label"])
                 rowid_col.append(row["rowid"])
 
         df = pd.DataFrame({"value": value_col, "label": label_col, "rowid": rowid_col})
         return BatchIterator(df, self.dojokun.batch_size)
 
-    def pad(self, list):
+    def pad(self, list, pad:int):
         while (len(list) < self.dojokun.max_seq_len):
-            list.append(100000) # pad
+            list.append(pad) # pad
         return list
 
 

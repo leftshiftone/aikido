@@ -45,24 +45,29 @@ class StyleTransferDojo(BaseDojo):
     def _do_dan(self, aikidoka: Aikidoka, kata: Kata):
 
         loss_ref = [0]
+        loss_count = [0]
 
         def closure():
+            # TODO: remove workaround
+            if len(aikidoka.kun.gpu) > 1:
+                aikidoka.to("cpu")
+
             self.optimizer.zero_grad()
             aikidoka(self.generated_image)
 
             loss = 0
             for i, sl in enumerate(aikidoka.styling_losses):
                 weight = self.kun.styling_weights[i] / (2 ** i if self.dojokun.geometric_weight else 1)
-                loss += sl.loss.to(self.kun.get_backward_device()) * weight
+                loss += sl.loss.to(self.kun.get_backward_device(loss_count[0])) * weight
             for i, cl in enumerate(aikidoka.content_losses):
                 weight = self.kun.content_weights[i] / (2 ** (len(aikidoka.content_losses) - i) if self.dojokun.geometric_weight else 1)
-                loss += cl.loss.to(self.kun.get_backward_device()) * weight
-            for tl in aikidoka.tv_losses:
-                loss += tl.loss.to(self.kun.get_backward_device()) * self.kun.tv_weight
+                loss += cl.loss.to(self.kun.get_backward_device(loss_count[0])) * weight
+            for i, tl in enumerate(aikidoka.tv_losses):
+                loss += tl.loss.to(self.kun.get_backward_device(loss_count[0])) * self.kun.tv_weight
 
             loss.backward()
-
             loss_ref[0] = loss
+            loss_count[0] = loss_count[0] + 1
             return loss
 
         self.optimizer.step(closure)

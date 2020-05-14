@@ -27,6 +27,12 @@ class DojoListener:
     def batch_finished(self, aikidoka: Aikidoka, batch, run: (int, int)):
         pass
 
+    def inference_started(self, aikidoka: Aikidoka, x, batch_length:int):
+        pass
+
+    def inference_finished(self, aikidoka: Aikidoka, x, batch_length:int, y):
+        pass
+
 
 class Evaluation:
 
