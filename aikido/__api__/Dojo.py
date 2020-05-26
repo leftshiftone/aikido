@@ -9,6 +9,9 @@ class DojoListener:
     Instances which extends from this class can be used to listen to certain dojo events.
     """
 
+    def initialize(self, aikidoka: Aikidoka, kata: Kata, kun: 'DojoKun'):
+        pass
+
     def dan_started(self, aikidoka: Aikidoka, run: (int, int)):
         pass
 

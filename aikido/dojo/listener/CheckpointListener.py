@@ -16,8 +16,8 @@ class CheckpointListener(DojoListener):
 
     def dan_finished(self, aikidoka: Aikidoka, run: (int, int), metrics: (float, float)):
         self.kun = aikidoka.kun
-        self.maybe_print(run[0], metrics[0], aikidoka.content_losses, aikidoka.styling_losses, aikidoka.tv_losses)
-        self.maybe_save(run[0], aikidoka.generated_image, aikidoka.content_image)
+        self.maybe_print(run[0] + 1, metrics[0], aikidoka.content_losses, aikidoka.styling_losses, aikidoka.tv_losses)
+        self.maybe_save(run[0] + 1, aikidoka.generated_image, aikidoka.content_image)
 
     def maybe_print(self, t, loss, content_losses, styling_losses, tv_losses):
         if self.print_iter > 0 and t % self.print_iter == 0:

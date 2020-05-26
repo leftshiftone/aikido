@@ -27,6 +27,9 @@ class BaseDojo(ABC):
         If you want to get more detailed information about the training progress
         register a proper listener instance.
         """
+        for listener in self.listeners:
+            listener.initialize(aikidoka, kata, self.dojokun)
+
         aikidoka.train()
         self._before_training_started(aikidoka)
 
