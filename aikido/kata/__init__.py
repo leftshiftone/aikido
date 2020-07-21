@@ -1,3 +1,4 @@
+from .AbstractKata import AbstractKata
 from .CsvKata import CsvKata
 from .DirectKata import DirectKata
 from .EmptyKata import EmptyKata

@@ -1,7 +1,8 @@
+import logging
+
 from aikido.__api__.Aikidoka import Aikidoka
 from aikido.__api__.Dojo import DojoListener, DojoKun
 from aikido.__api__.Kata import Kata
-
 
 try:
     from livelossplot import PlotLosses
@@ -10,7 +11,10 @@ try:
     plt.style.use('dark_background')
     plt.rcParams['axes.facecolor'] = '#282828'
 except ImportError:
-    print("no 'livelossplot' installation detected")
+    logging.error("-" * 100)
+    logging.error("no livelossplot installation found. see https://pypi.org/project/livelossplot/")
+    logging.error("-" * 100)
+    pass
 
 
 class LiveLossPlotListener(DojoListener):

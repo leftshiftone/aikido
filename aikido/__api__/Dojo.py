@@ -50,6 +50,10 @@ class Evaluation:
         for i in [self.labels, self.values, self.rowids, self.isprop]:
             yield i
 
+    def plot_confusion_matrix(self):
+        from aikido.visuals import ConfusionMatrix
+        ConfusionMatrix().render(self)
+
 
 class DojoKun:
     def __init__(self, optimizer, loss, dans=20, batch_size: int = 64, max_seq_len: int = 150):

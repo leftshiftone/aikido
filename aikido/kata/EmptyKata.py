@@ -1,9 +1,9 @@
 import pandas as pd
 
-from aikido.__api__.Kata import Kata
+from aikido.kata import AbstractKata
 
 
-class EmptyKata(Kata):
+class EmptyKata(AbstractKata):
     """
     Empty Kata implementation used by models which do not need training by a kata.
     """

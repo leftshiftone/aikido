@@ -1,7 +1,7 @@
-from aikido.__api__.Kata import Kata
+from aikido.kata import AbstractKata
 
 
-class DirectKata(Kata):
+class DirectKata(AbstractKata):
     """
     Kata implementation which loads the data from an csv file.
     """

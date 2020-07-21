@@ -7,7 +7,6 @@ import torch.optim as optim
 from aikido.__api__ import Aikidoka, DojoKun, Kata
 from aikido.dojo import BaseDojo
 from aikido.dojo.listener.CheckpointListener import CheckpointListener
-from aikido.nn.modules.styletransfer.fileloader import preprocess
 
 
 class StyleTransferDojoKun(DojoKun):
@@ -83,6 +82,7 @@ class StyleTransferDojo(BaseDojo):
             b, c, h, w = self.content_image.size()
             return torch.randn(c, h, w).mul(0.001).unsqueeze(0).type(self.kun.get_dtype())
         elif self.dojokun.init == 'image':
+            from aikido.nn.modules.styletransfer.fileloader import preprocess
             if self.dojokun.init_image is not None:
                 logging.info("image initialization")
                 image_size = (self.content_image.size(2), self.content_image.size(3))

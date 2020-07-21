@@ -1,11 +1,9 @@
 import os
 from dataclasses import dataclass
 
-from PIL import Image
 from torch.nn import Parameter
 
 from aikido.__api__ import DojoListener, Aikidoka
-from aikido.nn.modules.styletransfer.fileloader import deprocess
 
 
 @dataclass
@@ -31,6 +29,8 @@ class CheckpointListener(DojoListener):
             print("  Total loss: " + str(loss.item()))
 
     def maybe_save(self, t, img: Parameter, content_image):
+        from aikido.nn.modules.styletransfer.fileloader import deprocess
+
         should_save = self.save_iter > 0 and t % self.save_iter == 0 and t > 0
         should_save = should_save or t == 50#FIXME
         if should_save:
@@ -49,6 +49,7 @@ class CheckpointListener(DojoListener):
     # Combine the Y channel of the generated image and the UV/CbCr channels of the
     # content image to perform color-independent style transfer.
     def postprocess_colors(self, content, generated):
+        from PIL import Image
         content_channels = list(content.convert('YCbCr').split())
         generated_channels = list(generated.convert('YCbCr').split())
         content_channels[0] = generated_channels[0]

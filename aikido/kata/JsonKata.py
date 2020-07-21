@@ -9,10 +9,10 @@ from typing import List
 import pandas as pd
 
 from aikido.__api__ import Preprocessor
-from aikido.__api__.Kata import Kata
+from aikido.kata import AbstractKata
 
 
-class JsonKata(Kata):
+class JsonKata(AbstractKata):
     """
     Kata implementation which loads the data from a json file.
     """
@@ -27,7 +27,6 @@ class JsonKata(Kata):
 
     @staticmethod
     def from_folder(path: str, preprocessor: Preprocessor = Preprocessor(), encoding: str = "utf-8"):
-
         # parse labels
         # ************
         labels = [f for f in listdir(path) if isdir(join(path, f))]

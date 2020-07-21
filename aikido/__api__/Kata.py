@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame
 
+from aikido.__api__.annotation import Experimental
+
 
 class Preprocessor:
     def preprocess(self, text: str):
@@ -61,22 +63,20 @@ class Kata(ABC):
         result[column] = result[column].apply(callback)
         return Kata(result, self.labels)
 
-    def plot_barchart(self):
-        import matplotlib.pyplot as plt
-        plt.style.use('dark_background')
-        plt.rcParams['axes.facecolor'] = '#282828'
+    def filter(self, indices):
+        result = self.df.copy()
+        return Kata(result[indices], self.labels)
 
-        plt.figure(figsize=(8, 6))
-        self.df.groupby('label').label.count().plot.bar(ylim=0)
-        plt.show()
+    @Experimental
+    def flatten(self, column):
+        columns = list(self.df.columns)
+        columns.remove(column)
 
-    # https://www.datacamp.com/community/tutorials/wordcloud-python
-    def plot_tagcloud(self):
-        from wordcloud import WordCloud
-        import matplotlib.pyplot as plt
-        wordcloud = WordCloud().generate(["text"])
+        df2 = self.df.set_index(columns).apply(lambda x: x.explode()).reset_index()
+        df2 = df2[df2[column].notnull()]
+        return Kata(df2, self.labels)
 
-        # Display the generated image:
-        plt.imshow(wordcloud, interpolation='bilinear')
-        plt.axis("off")
-        plt.show()
+    def preprocess(self, preprocessor:Preprocessor, column: str = "value"):
+        result = self.df.copy()
+        result[column] = result[column].apply(preprocessor.preprocess)
+        return Kata(result, self.labels)

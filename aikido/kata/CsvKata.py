@@ -3,10 +3,10 @@ from typing import List
 import pandas as pd
 
 from aikido.__api__ import Preprocessor
-from aikido.__api__.Kata import Kata
+from aikido.kata import AbstractKata
 
 
-class CsvKata(Kata):
+class CsvKata(AbstractKata):
     """
     Kata implementation which loads the data from a csv file.
     """

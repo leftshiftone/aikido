@@ -16,13 +16,17 @@ class SeedListener(DojoListener):
         if self.seed >= 0:
             logging.debug("set seed to " + str(self.seed))
 
-            import numpy as np
             from random import seed
-            seed(0)
+            seed(self.seed)
 
             torch.manual_seed(self.seed)
             # noinspection PyUnresolvedReferences
             torch.cuda.manual_seed_all(self.seed)
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
-            np.random.seed(self.seed)
+
+            try:
+                import numpy as np
+                np.random.seed(self.seed)
+            except ImportError:
+                pass
